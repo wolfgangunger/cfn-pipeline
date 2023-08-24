@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Automated Pipelines for CloudFormation Deployments - copyright Wolfgang Unger 8/2023'
+
+
+Parameters:
+  ConnectionArn:
+    Description: The Codestar Connection Url
+    Type: String
+    Default: arn:aws:codestar-connections:eu-central-1:039735417706:connection/872747e0-e670-4a73-92e5-c56a594d9ac1
+
+  FullRepositoryId:
+    Description: The complete repo name for example wolfgangunger/cfn-for-pipeline
+    Type: String
+    Default: wolfgangunger/cfn-for-pipeline
+
+  BranchName:
+    Description: The branch to checkout from your repo
+    Type: String
+    Default: main
+
+  TriggerGeneratorPipelineOnPush:
+    Description: Should the Generator Pipeline run on Repo Actions?
+    Type: String
+    Default: true 
+    AllowedValues: 
+      - true 
+      - false    
+
+
+##############
+Resources:
+
+  ## this role will be used for the pipelines and the source and build actions - to keep it simple - thus seperated decdicated roles would be better
+  PipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: cfn-pipeline-build-role
+      ManagedPolicyArns:
+        - !Join 
+          - ''
+          - - 'arn:'
+            - !Ref 'AWS::Partition'
+            - ':iam::aws:policy/AdministratorAccess'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com              
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com         
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com                            
+        Version: 2012-10-17      
+      Tags:
+        - Key: Name
+          Value: cfn-pipeline-build-role
+
+## pipeline template resources
+  PipelineTemplateBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: cfn-pipeline-template-deplyoment-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: cfn-pipeline-template-deplyoment-bucket
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+
+# this pipeline will get deployed and serves as a template for the later on generated pipelines for each stack
+  TemplatePipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: cfn-pipeline-template
+      RoleArn: !GetAtt PipelineRole.Arn
+      ArtifactStore:
+        Location: !Ref PipelineTemplateBucket
+        Type: S3
+      Stages:
+        - Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: '1'
+              Configuration:
+                ConnectionArn:  !Ref ConnectionArn
+                FullRepositoryId: !Ref FullRepositoryId
+                BranchName: !Ref BranchName
+                DetectChanges: false
+              Name: SourceArtifact
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RoleArn: !GetAtt PipelineRole.Arn
+          Name : Source      
+        - Actions:
+            - ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              Configuration:
+                Capabilities: 'CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND'
+                StackName: to-be-replaced
+                ActionMode: CREATE_UPDATE
+                ChangeSetName: PipelineChange
+                RoleArn: !GetAtt PipelineRole.Arn
+                TemplateConfiguration: 'SourceArtifact::to-be-replaced.json'
+                TemplatePath: 'SourceArtifact::my-pipeline-stack::to-be-replaced.yml'
+              InputArtifacts:
+                - Name: SourceArtifact   
+              Name: Deploy
+              RoleArn: !GetAtt PipelineRole.Arn
+              RunOrder: 2   
+          Name: Deploy    
+      Tags:
+        - Key: Name
+          Value: cfn-pipeline-template          
+
+## pipeline generator resourcs
+  PipelineGeneratorBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: cfn-cipeline-generator-deployment-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: cfn-cipeline-generator-deployment-bucket
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain          
+
+# this pipeline calls the script which will create for each cloud formation folder and template a pipeline
+  GeneratorPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    DependsOn: TemplatePipeline
+    Properties:
+      Name: cfn-Pipeline-Generator
+      RoleArn: !GetAtt PipelineRole.Arn
+      ArtifactStore:
+        Location: !Ref PipelineGeneratorBucket
+        Type: S3
+      Stages:
+        - Actions:
+            - ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: '1'
+              Configuration:
+                ConnectionArn: !Ref ConnectionArn
+                FullRepositoryId: !Ref FullRepositoryId
+                BranchName: !Ref BranchName
+                DetectChanges: !Ref TriggerGeneratorPipelineOnPush
+              Name: cfn_pipeline_Source
+              OutputArtifacts:
+                - Name: cfn_pipeline_Source
+              RoleArn: !GetAtt PipelineRole.Arn
+          Name : Source      
+        - Actions:
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref >-
+                  PipelineCreateCfnPipelinesBuildProject
+              InputArtifacts:
+                - Name: cfn_pipeline_Source
+              Name: Create_CFN_Pipelines
+              RoleArn: !GetAtt PipelineRole.Arn
+              RunOrder: 2
+          Name: Create_Cfn_Pipelines   
+      Tags:
+        - Key: Name
+          Value: cfn-Pipeline-Generator      
+
+  PipelineCreateCfnPipelinesBuildProject:
+    Type: 'AWS::CodeBuild::Project'
+    DependsOn: PipelineArtifactsBucketEncryptionKey
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: BRANCH
+            Type: PLAINTEXT
+            Value: !Ref BranchName
+          - Name: stage
+            Type: PLAINTEXT
+            Value: dev
+        Image: 'aws/codebuild/standard:5.0'
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+      ServiceRole: !GetAtt PipelineRole.Arn
+      Source:
+        BuildSpec: |-
+          {
+            "version": "0.2",
+            "phases": {
+              "build": {
+                "commands": [
+                  "python scripts/create_pipelines.py"
+                ]
+              }
+            }
+          }
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      Description: >-
+        Pipeline step
+        Create_CFN_Pipelines
+      EncryptionKey: !GetAtt 
+        - PipelineArtifactsBucketEncryptionKey
+        - Arn            
+
+  PipelineArtifactsBucketEncryptionKey:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      KeyPolicy:
+        Statement:
+          - Action: 'kms:*'
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':iam::'
+                  - !Ref 'AWS::AccountId' 
+                  - ':root'
+            Resource: '*'
+          - Action:
+              - 'kms:Decrypt'
+              - 'kms:DescribeKey'
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt PipelineRole.Arn
+            Resource: '*'
+        Version: 2012-10-17
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete      
+
+#############
+# Outputs:
+#   RoleArn:
+#     Value: !GetAtt PipelineRole.Arn
+#     Description: PipelineRole ARN
+#     Export:
+#       Name: PipelineRole
+
