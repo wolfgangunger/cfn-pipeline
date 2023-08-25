@@ -64,11 +64,11 @@ Resources:
         - Key: Name
           Value: cfn-pipeline-build-role
 
-## pipeline template resources
+## buckets for pipeline
   PipelineTemplateBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: cfn-pipeline-template-deplyoment-bucket
+      BucketName: cfn-pipeline-template-deployment-bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -76,14 +76,31 @@ Resources:
         RestrictPublicBuckets: true
       Tags:
         - Key: Name
-          Value: cfn-pipeline-template-deplyoment-bucket
+          Value: cfn-pipeline-template-deployment-bucket
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
 
+  PipelineGeneratorBucket:
+    Type: 'AWS::S3::Bucket'
+    DependsOn: PipelineTemplateBucket
+    Properties:
+      BucketName: cfn-pipeline-generator-deployment-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: cfn-pipeline-generator-deployment-bucket
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain        
 
+## pipeline template resources
 # this pipeline will get deployed and serves as a template for the later on generated pipelines for each stack
   TemplatePipeline:
     Type: 'AWS::CodePipeline::Pipeline'
+    DependsOn: PipelineTemplateBucket
     Properties:
       Name: cfn-pipeline-template
       RoleArn: !GetAtt PipelineRole.Arn
@@ -132,20 +149,7 @@ Resources:
           Value: cfn-pipeline-template          
 
 ## pipeline generator resourcs
-  PipelineGeneratorBucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      BucketName: cfn-cipeline-generator-deployment-bucket
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: Name
-          Value: cfn-cipeline-generator-deployment-bucket
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain          
+  
 
 # this pipeline calls the script which will create for each cloud formation folder and template a pipeline
   GeneratorPipeline:
@@ -262,11 +266,4 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete      
 
-#############
-# Outputs:
-#   RoleArn:
-#     Value: !GetAtt PipelineRole.Arn
-#     Description: PipelineRole ARN
-#     Export:
-#       Name: PipelineRole
 
