@@ -1,4 +1,4 @@
-# Codepipeline Pipeline for automated CFN Deployments
+# Codepipeline for automated CFN Deployments
 Automation for cloudformation deployments with code pipeline
 
 
