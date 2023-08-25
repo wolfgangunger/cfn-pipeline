@@ -1,4 +1,4 @@
-# CFN Pipeline for CFN Deployments
+# Codepipeline Pipeline for automated CFN Deployments
 Automation for cloudformation deployments with code pipeline
 
 
@@ -10,6 +10,7 @@ Example Project for Cloudformation Repo
    
 ## introduction
 this project contains a codepipeline that will allow automated cloudformation deployment with codepipeline  
+  
 it is setup for a one account scenario - multi account deployments from a toolchain account to multiple  
 stage accounts would be possible, but complicate this project   
 therefore, if you have 3 stage accounts (dev, qa, prod), setup the pipeline in each account.  
@@ -18,17 +19,18 @@ therefore, if you have 3 stage accounts (dev, qa, prod), setup the pipeline in e
 ## setup
 you need a repo with your cloudformation templates you want to deploy - see example repo above  
 follow the naming conventations of folders and also for the template yaml files and parameter json files  
+include the python script 'create_pipelines.py' in your cloudformation repo in a folder names 'scripts'. See example repo project.  
 
-you need to setup a codestar connection to allow codepipeline to read from this repo - it can be github, bitbucket and gitlab  
-deploy the template 'cfn-pipeline-generator' in the account where you want to deploy the cloudformation templates by pipeline  
+You need to setup a codestar connection to allow codepipeline to read from this repo - it can be github, bitbucket and gitlab.   
+Next deploy the template 'cfn-pipeline-generator' in the account and region where you want to deploy the cloudformation templates by pipeline.    
 it will deploy a pipeline template first, this pipeline is not runnable, it just serves as template for creating the other pipelines for your cloudformation stacks  
-this template pipeline is stetup with 'trigger on push = false' , so the cloudformatin deployment pipelines will not 
+This template pipeline is stetup with 'trigger on push = false' , so the cloudformatin deployment pipelines will not 
 start automatically once you make changes in your cfn-repo. 
 you have to trigger the dedicated pipeline for each stack if you want to deploy to dev, qa or prod. this is designed on purpose like this.  
 
 
 
-next it will create a pipeline for each folder in your cfn-repo  
+Next it will create a pipeline for each folder in your cfn-repo  
 please see my git repo 
 [Repo CFN-Example](https://github.com/wolfgangunger/cfn-for-pipeline)
  as example :
