@@ -15,6 +15,9 @@ it is setup for a one account scenario - multi account deployments from a toolch
 stage accounts would be possible, but complicate this project   
 therefore, if you have 3 stage accounts (dev, qa, prod), setup the pipeline in each account.  
 
+Architecture:
+![image](https://github.com/wolfgangunger/cdk-cfn-pipeline/blob/main/architecture-cfn-pipeline.jpg)
+
 
 ## setup
 you need a repo with your cloudformation templates you want to deploy - see example repo above  
