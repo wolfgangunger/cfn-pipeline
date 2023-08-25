@@ -18,7 +18,6 @@ therefore, if you have 3 stage accounts (dev, qa, prod), setup the pipeline in e
 Architecture:
 ![image](https://github.com/wolfgangunger/cfn-pipeline/blob/main/architecture-cfn-pipeline.jpg)
 
-
 ## setup
 you need a repo with your cloudformation templates you want to deploy - see example repo above  
 follow the naming conventations of folders and also for the template yaml files and parameter json files  
