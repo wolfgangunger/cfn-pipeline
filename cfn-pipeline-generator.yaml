@@ -27,7 +27,7 @@ Parameters:
       - false    
 
   BucketName:
-    Description: Name for the Pipeline Bucket, please change
+    Description: Name for the Pipeline Bucket, please change, must be unique global
     Type: String
     Default:  cfn-pipeline-generator-deployment-bucket-wu    
 
