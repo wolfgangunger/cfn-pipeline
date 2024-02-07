@@ -24,6 +24,9 @@ follow the naming conventations of folders and also for the template yaml files 
 include the python script 'create_pipelines.py' in your cloudformation repo in a folder names 'scripts'. See example repo project.  
 
 You need to setup a codestar connection to allow codepipeline to read from this repo - it can be github, bitbucket and gitlab.   
+See also documentation on how to do this:  
+[CodeStar Connection](https://docs.aws.amazon.com/dtconsole/latest/userguide/connections-create-github.html)  
+  
 Next deploy the template 'cfn-pipeline-generator' in the account and region where you want to deploy the cloudformation templates by pipeline.    
 it will deploy a pipeline template first, this pipeline is not runnable, it just serves as template for creating the other pipelines for your cloudformation stacks  
 This template pipeline is stetup with 'trigger on push = false' , so the cloudformatin deployment pipelines will not 
@@ -52,18 +55,18 @@ to deploy the cloudformation templates, trigger the pipeline for this stack afte
 
 you will see as many pipelines as you have subfolders (cfn_[foldername]) with templates in your cfn-repo  
 this will look like this:  
-![image](https://github.com/wolfgangunger/cdk-cfn-pipeline/blob/main/pipeline-cfn2.jpg)
+![image](https://github.com/wolfgangunger/cfn-pipeline/blob/main/pipeline-cfn2.jpg)
 
 
 you can now use these pipelines to deploy to your stage account(s) and avoid manual deployments on the cfn web-console  
 
 
 More Infos this Project in my Blog :  
-<a href="https://www.sccbrasil.com/blog/aws/cfn-structure.html" target="_blank">Automated CloudFormation Deplyoment with CodePipeine</a>  
+<a href="https://www.sccbrasil.com/blog/aws/pipeline-for-cfn.html" target="_blank">Automated CloudFormation Deplyoment with CodePipeine</a>  
 
 See more Infos about structuring and layering CFN Templates :  
 <a href="https://www.sccbrasil.com/blog/aws/cfn-structure.html" target="_blank">Structuring CloudFormation</a>  
-
-
+  
+Are you using CDK ?  
 Same Project with Automated Pipeline in CDK  
 <a href="https://github.com/wolfgangunger/cdk-cfn-pipeline" target="_blank">CDK Pipeline for CFN Deployments</a>   
