@@ -51,7 +51,7 @@ cfn_001_simple_user
 -params_qa.json  
 -params_prod.json  
 
-to deploy the cloudformation templates, trigger the pipeline for this stack after updating  
+
 
 you will see as many pipelines as you have subfolders (cfn_[foldername]) with templates in your cfn-repo  
 this will look like this:  
@@ -60,6 +60,9 @@ this will look like this:
 
 you can now use these pipelines to deploy to your stage account(s) and avoid manual deployments on the cfn web-console  
 
+if you are adding new templates to your github repo, run again the pipeline generator, it will create new pipelines for new templates  
+if you want to update a existing template, commit the changes to the repo and run the associated pipeline for this stack, it will perform  
+a update Stack operation for an existing Stack.  
 
 More Infos this Project in my Blog :  
 <a href="https://www.sccbrasil.com/blog/aws/pipeline-for-cfn.html" target="_blank">Automated CloudFormation Deplyoment with CodePipeine</a>  

@@ -6,7 +6,7 @@ Parameters:
   ConnectionArn:
     Description: The Codestar Connection Url
     Type: String
-    Default: arn:aws:codestar-connections:eu-central-1:039735417706:connection/872747e0-e670-4a73-92e5-c56a594d9ac1
+
 
   FullRepositoryId:
     Description: The complete repo name for example wolfgangunger/cfn-for-pipeline
@@ -25,6 +25,13 @@ Parameters:
     AllowedValues: 
       - true 
       - false    
+
+  BucketName:
+    Description: Name for the Pipeline Bucket, please change, must be unique global
+    Type: String
+    Default:  cfn-pipeline-generator-deployment-bucket-wu    
+
+ 
 
 
 ##############
@@ -68,7 +75,8 @@ Resources:
   PipelineTemplateBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: cfn-pipeline-template-deployment-bucket
+      #BucketName: cfn-pipeline-template-deployment-bucket
+      BucketName: !Ref BucketName
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -76,7 +84,7 @@ Resources:
         RestrictPublicBuckets: true
       Tags:
         - Key: Name
-          Value: cfn-pipeline-template-deployment-bucket
+          Value: !Ref BucketName
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
 
@@ -85,6 +93,10 @@ Resources:
     DependsOn: PipelineTemplateBucket
     Properties:
       BucketName: cfn-pipeline-generator-deployment-bucket
+      BucketName: !Join 
+                    - "-"
+                    - -  "generator-" 
+                      -  !Ref BucketName
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -92,7 +104,10 @@ Resources:
         RestrictPublicBuckets: true
       Tags:
         - Key: Name
-          Value: cfn-pipeline-generator-deployment-bucket
+          Value: !Join 
+                    - "-"
+                    - -  "generator-" 
+                      -  !Ref BucketName
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain        
 
